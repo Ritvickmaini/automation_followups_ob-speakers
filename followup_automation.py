@@ -13,6 +13,7 @@ import json
 import os
 
 # === SMTP/IMAP Credentials ===
+print("✅ Script loaded. Starting authentication...")
 SMTP_SERVER = "mail.b2bgrowthexpo.com"
 SMTP_PORT = 587
 SMTP_EMAIL = "speakersengagement@b2bgrowthexpo.com"
@@ -59,7 +60,10 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapi
 creds = Credentials.from_service_account_file('/etc/secrets/service_account.json', scopes=SCOPES)
 sheets_api = build("sheets", "v4", credentials=creds)
 gc = gspread.authorize(creds)
+print("✅ Google Sheets credentials loaded.")
+print("✅ Opening worksheet...")
 sheet = gc.open("Expo-Sales-Management").worksheet("OB-speakers")
+print(f"✅ Worksheet '{sheet.title}' opened successfully.")
 
 # === Follow-up Templates ===
 FOLLOWUP_EMAILS = [
@@ -381,6 +385,7 @@ if __name__ == "__main__":
 
     while True:
         try:
+            print(f"⏱ Loop at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             print("\n--- Checking for replies ---")
             process_replies()
 
