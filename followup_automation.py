@@ -13,7 +13,7 @@ import json
 import os
 
 # === SMTP/IMAP Credentials ===
-print("✅ Script loaded. Starting authentication...")
+print("✅ Script loaded. Starting authentication...",flush=True)
 SMTP_SERVER = "mail.b2bgrowthexpo.com"
 SMTP_PORT = 587
 SMTP_EMAIL = "speakersengagement@b2bgrowthexpo.com"
@@ -60,10 +60,10 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapi
 creds = Credentials.from_service_account_file('/etc/secrets/service_account.json', scopes=SCOPES)
 sheets_api = build("sheets", "v4", credentials=creds)
 gc = gspread.authorize(creds)
-print("✅ Google Sheets credentials loaded.")
-print("✅ Opening worksheet...")
+print("✅ Google Sheets credentials loaded.",flush=True)
+print("✅ Opening worksheet...",flush=True)
 sheet = gc.open("Expo-Sales-Management").worksheet("OB-speakers")
-print(f"✅ Worksheet '{sheet.title}' opened successfully.")
+print(f"✅ Worksheet '{sheet.title}' opened successfully.",flush=True)
 
 # === Follow-up Templates ===
 FOLLOWUP_EMAILS = [
@@ -100,7 +100,7 @@ def send_email(to_email, subject, body, name=""):
             server.starttls()
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             server.sendmail(SMTP_EMAIL, to_email, msg.as_string())
-        print(f"✅ Email sent to {to_email}")
+        print(f"✅ Email sent to {to_email}",flush=True)
     except Exception as e:
         print(f"❌ SMTP Error while sending to {to_email}: {e}")
 
@@ -127,7 +127,7 @@ def get_reply_emails():
                 replied.add(from_addr)
     except Exception as e:
         print(f"❌ IMAP Error while checking replies: {e}")
-    print(f"✅ Found {len(replied)} new replies.")
+    print(f"✅ Found {len(replied)} new replies.",flush=True)
     return replied
 
 def hex_to_rgb(hex_color):
@@ -172,9 +172,9 @@ def batch_update_cells(sheet_id, updates):
             spreadsheetId=sheet_id,
             body=body
         ).execute()
-        print("✅ Batch update of cell values complete.")
+        print("✅ Batch update of cell values complete.",flush=True)
     except Exception as e:
-        print(f"❌ Failed batch cell update: {e}")
+        print(f"❌ Failed batch cell update: {e}",flush=True)
 
 def batch_color_rows(spreadsheet_id, start_row_index_color_map, sheet_id):
     requests = []
@@ -201,9 +201,9 @@ def batch_color_rows(spreadsheet_id, start_row_index_color_map, sheet_id):
         response = sheets_api.spreadsheets().batchUpdate(
             spreadsheetId=spreadsheet_id, body={"requests": requests}
         ).execute()
-        print(f"✅ Batch row coloring done. Response: {json.dumps(response, indent=2)}")
+        print(f"✅ Batch row coloring done. Response: {json.dumps(response, indent=2)}",flush=True)
     except Exception as e:
-        print(f"❌ Batch row coloring failed: {e}")
+        print(f"❌ Batch row coloring failed: {e}",flush=True)
 
 def set_row_color(sheet, row_number, color_hex):
     print(f"Coloring row {row_number} with color {color_hex}")
@@ -229,7 +229,7 @@ def set_row_color(sheet, row_number, color_hex):
         }
         sheet.spreadsheet.batch_update(sheet_format)
     except Exception as e:
-        print(f"❌ Google Sheets Error while coloring row {row_number}: {e}")
+        print(f"❌ Google Sheets Error while coloring row {row_number}: {e}",flush=True)
 
 def get_row_background_color(sheet_id, sheet_name, row_number):
     try:
@@ -246,10 +246,10 @@ def get_row_background_color(sheet_id, sheet_name, row_number):
             int(cell_format.get('green', 0) * 255),
             int(cell_format.get('blue', 0) * 255)
         )
-        print(f"Row {row_number} color fetched: RGB{rgb}")
+        print(f"Row {row_number} color fetched: RGB{rgb}",flush=True)
         return rgb
     except Exception as e:
-        print(f"❌ Error getting background color for row {row_number}: {e}")
+        print(f"❌ Error getting background color for row {row_number}: {e}",flush=True)
         return None
 
 def process_replies():
@@ -380,23 +380,23 @@ def process_followups():
 
 # === Entry Point ===
 if __name__ == "__main__":
-    print("🚀 Sales follow-up automation started...")
+    print("🚀 Sales follow-up automation started...",flush=True)
     next_followup_check = time.time()
 
     while True:
         try:
-            print(f"⏱ Loop at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            print("\n--- Checking for replies ---")
+            print(f"⏱ Loop at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",flush=True)
+            print("\n--- Checking for replies ---",flush=True)
             process_replies()
 
             current_time = time.time()
             if current_time >= next_followup_check:
-                print("\n--- Sending follow-up emails ---")
+                print("\n--- Sending follow-up emails ---",flush=True)
                 process_followups()
                 next_followup_check = current_time + 86400  # every 24 hours
 
         except Exception:
-            print("❌ Fatal error:")
+            print("❌ Fatal error:",flush=True)
             traceback.print_exc()
 
         time.sleep(30)
