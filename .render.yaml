@@ -1,0 +1,7 @@
+services:
+  - type: worker
+    name: speaker-followup-worker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python followup_automation.py
+    autoDeploy: true
