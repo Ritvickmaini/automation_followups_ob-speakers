@@ -399,8 +399,8 @@ if __name__ == "__main__":
     while True:
         try:
             print(f"⏱ Loop at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",flush=True)
-            print("\n--- Checking for replies ---",flush=True)
-            process_replies()
+            #print("\n--- Checking for replies ---",flush=True)
+            #process_replies()
 
             current_time = time.time()
             if current_time >= next_followup_check:
