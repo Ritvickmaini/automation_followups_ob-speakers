@@ -143,21 +143,31 @@ def get_all_row_colors(sheet_id, sheet_name, start_row=2, end_row=1000):
         range_ = f"{sheet_name}!A{start_row}:A{end_row}"
         result = sheets_api.spreadsheets().get(
             spreadsheetId=sheet_id,
+            includeGridData=True,
             ranges=[range_],
             fields="sheets.data.rowData.values.effectiveFormat.backgroundColor"
         ).execute()
 
-        rows = result['sheets'][0]['data'][0]['rowData']
+        rows = result['sheets'][0]['data'][0].get('rowData', [])
         row_colors = []
+
         for row in rows:
-            color = row['values'][0].get('effectiveFormat', {}).get('backgroundColor', {})
+            cell = row.get('values', [{}])[0]
+            color = cell.get('effectiveFormat', {}).get('backgroundColor', {})
             rgb = (
-                int(color.get('red', 0) * 255),
-                int(color.get('green', 0) * 255),
-                int(color.get('blue', 0) * 255)
+                int(color.get('red', 1) * 255),
+                int(color.get('green', 1) * 255),
+                int(color.get('blue', 1) * 255)
             )
             row_colors.append(rgb)
+
+        # Padding to avoid index errors if fewer rows were returned
+        expected_rows = end_row - start_row + 1
+        while len(row_colors) < expected_rows:
+            row_colors.append((255, 255, 255))  # Default to white
+
         return row_colors
+
     except Exception as e:
         print(f"❌ Failed to fetch all row colors: {e}")
         return []
