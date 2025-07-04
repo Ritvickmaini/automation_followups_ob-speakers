@@ -172,19 +172,22 @@ def get_all_row_colors(sheet_id, sheet_name, start_row=2, end_row=1000):
         print(f"❌ Failed to fetch all row colors: {e}")
         return []
 
-def batch_update_cells(sheet_id, updates):
+def batch_update_cells(sheet_id, updates, chunk_size=100):
     try:
-        body = {
-            "valueInputOption": "USER_ENTERED",
-            "data": updates
-        }
-        sheets_api.spreadsheets().values().batchUpdate(
-            spreadsheetId=sheet_id,
-            body=body
-        ).execute()
-        print("✅ Batch update of cell values complete.",flush=True)
+        for i in range(0, len(updates), chunk_size):
+            chunk = updates[i:i+chunk_size]
+            body = {
+                "valueInputOption": "USER_ENTERED",
+                "data": chunk
+            }
+            sheets_api.spreadsheets().values().batchUpdate(
+                spreadsheetId=sheet_id,
+                body=body
+            ).execute()
+            print(f"✅ Batch update for rows {i+1} to {i+len(chunk)} complete.")
+            time.sleep(1)  # Slight delay to avoid rate limits
     except Exception as e:
-        print(f"❌ Failed batch cell update: {e}",flush=True)
+        print(f"❌ Failed batch cell update: {e}")
 
 def batch_color_rows(spreadsheet_id, start_row_index_color_map, sheet_id):
     requests = []
