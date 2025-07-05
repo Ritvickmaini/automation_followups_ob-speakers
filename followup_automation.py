@@ -305,88 +305,89 @@ def process_followups():
     print("Processing follow-up emails...")
     try:
         data = sheet.get_all_records()
+        total_rows = len(data)
         today = datetime.today().strftime('%Y-%m-%d')
-        updates = []
-        color_updates = {}
 
-        row_colors = get_all_row_colors(sheet.spreadsheet.id, sheet.title, 2, len(data) + 1)
-        sent_tracker = set()
+        for start_idx in range(2, total_rows + 2, 100):  # Google Sheets rows start from 2 (header is at 1)
+            end_idx = min(start_idx + 100, total_rows + 2)
+            print(f"🔁 Processing rows {start_idx} to {end_idx - 1}...")
 
-        for idx, row in enumerate(data, start=2):
-            if not any(row.values()):
-                continue
+            updates = []
+            color_updates = {}
+            sent_tracker = set()
+            batch_data = data[start_idx - 2:end_idx - 2]
+            row_colors = get_all_row_colors(sheet.spreadsheet.id, sheet.title, start_idx, end_idx - 1)
 
-            rgb = row_colors[idx - 2]
-            if rgb and rgb != (255, 255, 255):
-                continue
-
-            email_addr = row.get("Email", "").lower().strip()
-            if not email_addr or email_addr in sent_tracker:
-                continue
-
-            name = row.get("First_Name", "").strip()
-
-            try:
-                count = int(row.get("Follow-Up Count"))
-                if count < 0:
-                    count = 0
-            except:
-                count = 0
-
-            last_date = row.get("Last Follow-Up Date", "")
-            reply_status = row.get("Reply Status", "").strip()
-
-            if reply_status in ["Replied", "No Reply After 4 Followups"]:
-                continue
-
-            if last_date:
-                last_dt = datetime.strptime(last_date, "%Y-%m-%d")
-                if (datetime.now() - last_dt).total_seconds() < 86400:
+            for offset, row in enumerate(batch_data):
+                idx = start_idx + offset
+                if not any(row.values()):
                     continue
 
-            if count >= 4:
-                send_email(email_addr, "Last Reminder: Speaker Spot!", FINAL_EMAIL, name=name)
-                updates.append({"range": f"{sheet.title}!G{idx}", "values": [["No Reply After 4 Followups"]]})
-                color_updates[idx] = "#FF0000"
-                sent_tracker.add(email_addr)
-                continue
+                rgb = row_colors[offset]
+                if rgb and rgb != (255, 255, 255):
+                    continue
 
-            next_count = count
+                email_addr = row.get("Email", "").lower().strip()
+                if not email_addr or email_addr in sent_tracker:
+                    continue
 
-            try:
-                followup_text = FOLLOWUP_EMAILS[next_count].replace("{%name%}", name)
-                subject = FOLLOWUP_SUBJECTS[next_count]
+                name = row.get("First_Name", "").strip()
 
-                if next_count == 0:
-                    show = row.get("Show", "").strip()
-                    if not show:
+                try:
+                    count = int(row.get("Follow-Up Count"))
+                    if count < 0:
+                        count = 0
+                except:
+                    count = 0
+
+                last_date = row.get("Last Follow-Up Date", "")
+                reply_status = row.get("Reply Status", "").strip()
+
+                if reply_status in ["Replied", "No Reply After 4 Followups"]:
+                    continue
+
+                if last_date:
+                    last_dt = datetime.strptime(last_date, "%Y-%m-%d")
+                    if (datetime.now() - last_dt).total_seconds() < 86400:
                         continue
+
+                if count >= 4:
+                    send_email(email_addr, "Last Reminder: Speaker Spot!", FINAL_EMAIL, name=name)
+                    updates.append({"range": f"{sheet.title}!G{idx}", "values": [["No Reply After 4 Followups"]]})
+                    color_updates[idx] = "#FF0000"
+                    sent_tracker.add(email_addr)
+                    continue
+
+                next_count = count
+                try:
+                    followup_text = FOLLOWUP_EMAILS[next_count].replace("{%name%}", name)
+                    subject = FOLLOWUP_SUBJECTS[next_count]
+
+                    show = row.get("Show", "").strip()
                     followup_text = followup_text.replace("{%show%}", show)
                     subject = subject.replace("{%show%}", show)
 
-                send_email(email_addr, subject, followup_text, name=name)
-                sent_tracker.add(email_addr)
+                    send_email(email_addr, subject, followup_text, name=name)
+                    sent_tracker.add(email_addr)
 
-                print(f"Row {idx}: Sent template {next_count + 1} to {email_addr}")
+                    print(f"Row {idx}: Sent template {next_count + 1} to {email_addr}")
 
-                updates.extend([
-                    {"range": f"{sheet.title}!E{idx}", "values": [[str(next_count + 1)]]},
-                    {"range": f"{sheet.title}!F{idx}", "values": [[today]]},
-                    {"range": f"{sheet.title}!G{idx}", "values": [["Pending"]]}
-                ])
+                    updates.extend([
+                        {"range": f"{sheet.title}!E{idx}", "values": [[str(next_count + 1)]]},
+                        {"range": f"{sheet.title}!F{idx}", "values": [[today]]},
+                        {"range": f"{sheet.title}!G{idx}", "values": [["Pending"]]}
+                    ])
+                except Exception as e:
+                    print(f"❌ Failed to send email to {email_addr}: {e}")
+                    continue
 
-            except Exception as e:
-                print(f"❌ Failed to prepare/send follow-up email to {email_addr}: {e}")
-                continue
+            if updates:
+                batch_update_cells(sheet.spreadsheet.id, updates)
+            if color_updates:
+                batch_color_rows(sheet.spreadsheet.id, color_updates, sheet._properties['sheetId'])
 
-            if (idx - 1) % 3 == 0:
-                print("Sleeping for 3 seconds...")
-                time.sleep(3)
-
-        if updates:
-            batch_update_cells(sheet.spreadsheet.id, updates)
-        if color_updates:
-            batch_color_rows(sheet.spreadsheet.id, color_updates, sheet._properties['sheetId'])
+            print(f"✅ Completed batch rows {start_idx} to {end_idx - 1}. Sleeping 5 seconds...\n", flush=True)
+            time.sleep(5)
 
     except Exception as e:
         print("❌ Error in processing followups:", e)
